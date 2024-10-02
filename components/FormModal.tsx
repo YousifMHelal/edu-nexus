@@ -22,7 +22,7 @@ interface TeacherData {
   bloodType: string;
   birthday: string;
   sex: "male" | "female";
-  img?: string | File;
+  img?: File;
 }
 
 interface StudentData {

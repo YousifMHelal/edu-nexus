@@ -3,15 +3,8 @@
 @tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --background: #f4f7fc; /* Light background */
+  --foreground: #2c3e50; /* Primary text */
 }
 
 body {
@@ -24,4 +17,149 @@ body {
   .text-balance {
     text-wrap: balance;
   }
+}
+
+@layer base {
+  :root {
+    --background: #f4f7fc; /* Light grey */
+    --foreground: #2c3e50; /* Dark slate grey */
+    --card: #ffffff; /* White for cards */
+    --card-foreground: #2c3e50; /* Dark slate grey for card text */
+    --popover: #ffffff; /* White for popovers */
+    --popover-foreground: #2c3e50; /* Dark slate grey for popover text */
+    --primary: #3498db; /* Blue */
+    --primary-foreground: #ffffff; /* White on primary buttons */
+    --secondary: #bdc3c7; /* Light grey for secondary content */
+    --secondary-foreground: #2c3e50; /* Dark slate grey for secondary text */
+    --muted: #bdc3c7; /* Muted light grey */
+    --muted-foreground: #7f8c8d; /* Medium grey for muted text */
+    --destructive: #e74c3c; /* Red for destructive actions */
+    --destructive-foreground: #ffffff; /* White text on red */
+    --border: #bdc3c7; /* Light grey borders */
+    --input: #bdc3c7; /* Input background */
+    --ring: #3498db; /* Blue focus ring */
+    --chart-1: #e67e22; /* Orange for charts */
+    --chart-2: #27ae60; /* Green for charts */
+    --chart-3: #3498db; /* Blue for charts */
+    --chart-4: #e74c3c; /* Red for charts */
+    --chart-5: #7f8c8d; /* Grey for charts */
+    --radius: 0.5rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+.react-calendar {
+  width: 100% !important;
+  border: none !important;
+  background: var(--background) !important;
+  font-family: "Inter", sans-serif !important;
+}
+
+.react-calendar__navigation__label__labelText {
+  font-weight: 600;
+}
+
+.react-calendar__tile--active {
+  background-color: #c3ebfa !important;
+  color: black !important;
+}
+
+.rbc-btn-group:first-child {
+  display: none !important;
+}
+
+.rbc-toolbar-label {
+  text-align: right !important;
+  padding: 0px 20px !important;
+}
+
+.rbc-btn-group:last-child {
+  font-size: 13px !important;
+}
+
+.rbc-btn-group:last-child button {
+  border: none !important;
+  background-color: var(--muted) !important;
+  margin-left: 2px !important;
+  color: var(--muted-foreground ) !important;
+}
+
+.rbc-toolbar button.rbc-active {
+  background-color: var(--muted-foreground) !important;
+  box-shadow: none !important;
+  color: var(--muted) !important;
+}
+
+.rbc-time-view {
+  border-color: #eee !important;
+}
+
+.rbc-time-header {
+  display: none !important;
+}
+
+.rbc-time-content {
+  border: none !important;
+}
+
+.rbc-time-gutter.rbc-time-column {
+  font-size: 12px !important;
+}
+
+.rbc-time-gutter.rbc-time-column .rbc-timeslot-group {
+  padding: 0px 20px !important;
+}
+
+.rbc-timeslot-group {
+  background-color: #f7fdff !important;
+}
+
+.rbc-day-slot {
+  font-size: 14px !important;
+}
+
+.rbc-event {
+  border: none !important;
+  color: black !important;
+  padding: 10px !important;
+  margin: 10px !important;
+  width: 99% !important;
+}
+
+.rbc-event:nth-child(1) {
+  background-color: #e2f8ff !important;
+}
+.rbc-event:nth-child(2) {
+  background-color: #fefce8 !important;
+}
+.rbc-event:nth-child(3) {
+  background-color: #f2f1ff !important;
+}
+.rbc-event:nth-child(4) {
+  background-color: #fdf2fb !important;
+}
+.rbc-event:nth-child(5) {
+  background-color: #e2f8ff !important;
+}
+.rbc-event:nth-child(6) {
+  background-color: #fefce8 !important;
+}
+.rbc-event:nth-child(7) {
+  background-color: #f2f1ff !important;
+}
+.rbc-event:nth-child(8) {
+  background-color: #fdf2fb !important;
+}
+
+.rbc-event-label {
+  color: gray !important;
+  margin-bottom: 5px;
 }

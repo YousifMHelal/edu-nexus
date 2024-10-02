@@ -38,7 +38,7 @@ interface StudentData {
 
 type Inputs = z.infer<typeof TeacherValidation>;
 
-const TeacherForm = ({
+const StudentForm = ({
   type,
   data,
 }: {
@@ -224,7 +224,15 @@ const TeacherForm = ({
               <FormItem className="w-full md:w-5/12">
                 <FormLabel>Birthday</FormLabel>
                 <FormControl>
-                  <Input type="date" {...field} />
+                  <Input
+                    type="date"
+                    {...field}
+                    value={
+                      field.value instanceof Date
+                        ? field.value.toISOString().split("T")[0]
+                        : field.value
+                    }
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -269,7 +277,11 @@ const TeacherForm = ({
                     height={24}
                   />
                   <span>Upload Image</span>
-                  <Input type="file" className="hidden" {...field} />
+                  <Input
+                    type="file"
+                    className="hidden"
+                    onChange={(e) => field.onChange(e.target.files?.[0])}
+                  />
                 </label>
                 <FormMessage />
               </FormItem>
@@ -286,4 +298,4 @@ const TeacherForm = ({
   );
 };
 
-export default TeacherForm;
+export default StudentForm;

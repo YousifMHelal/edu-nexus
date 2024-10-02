@@ -22,9 +22,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../ui/select";
-import { ChangeEvent, useState } from "react";
 
-interface TeacherData {
+interface StudentData {
   username: string;
   email: string;
   firstName: string;
@@ -34,7 +33,7 @@ interface TeacherData {
   bloodType: string;
   birthday: string | Date;
   sex: "male" | "female";
-  img?: string | File;
+  img?: File;
 }
 
 type Inputs = z.infer<typeof TeacherValidation>;
@@ -44,12 +43,8 @@ const TeacherForm = ({
   data,
 }: {
   type: "create" | "update" | "delete";
-  data?: TeacherData;
+  data?: StudentData;
 }) => {
-  const [selectedImage, setSelectedImage] = useState<File | undefined>(
-    undefined
-  );
-
   const form = useForm<Inputs>({
     resolver: zodResolver(TeacherValidation),
     defaultValues: {
@@ -67,39 +62,17 @@ const TeacherForm = ({
     },
   });
 
-  const handleImageUpload = (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      setSelectedImage(file);
-      form.setValue("img", file); // set file in form state
-    }
-  };
-
   const onSubmit = form.handleSubmit((values) => {
-    const formData = new FormData();
-    formData.append("username", values.username);
-    formData.append("email", values.email);
-    formData.append("password", values.password);
-    formData.append("firstName", values.firstName);
-    formData.append("lastName", values.lastName);
-    formData.append("phone", values.phone);
-    formData.append("address", values.address);
-    formData.append("bloodType", values.bloodType);
-    formData.append("birthday", values.birthday.toString());
-    formData.append("sex", values.sex);
-    if (selectedImage) {
-      formData.append("img", selectedImage);
-    }
-
-    // Handle form submission logic here
-    console.log(values); // replace this with actual submission logic
+    console.log(values);
   });
 
   return (
     <Form {...form}>
       <form onSubmit={onSubmit} className="space-y-8">
         <h1 className="text-xl font-semibold">
-          {type === "create" ? "Create a new teacher" : "Edit teacher details"}
+          {type === "create"
+            ? "Create a new student"
+            : "Update student details"}
         </h1>
 
         {/* Authentication Information */}
@@ -251,7 +224,15 @@ const TeacherForm = ({
               <FormItem className="w-full md:w-5/12">
                 <FormLabel>Birthday</FormLabel>
                 <FormControl>
-                  <Input type="date" {...field} />
+                  <Input
+                    type="date"
+                    {...field}
+                    value={
+                      field.value instanceof Date
+                        ? field.value.toISOString().split("T")[0]
+                        : field.value
+                    }
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -285,7 +266,7 @@ const TeacherForm = ({
           <FormField
             control={form.control}
             name="img"
-            render={() => (
+            render={({ field }) => (
               <FormItem className="w-full md:w-5/12">
                 <FormLabel>Upload a Photo</FormLabel>
                 <label className="cursor-pointer flex items-center gap-2">
@@ -299,7 +280,7 @@ const TeacherForm = ({
                   <Input
                     type="file"
                     className="hidden"
-                    onChange={handleImageUpload}
+                    onChange={(e) => field.onChange(e.target.files?.[0])}
                   />
                 </label>
                 <FormMessage />
@@ -309,7 +290,7 @@ const TeacherForm = ({
         </div>
 
         {/* Submit Button */}
-        <Button type="submit" className="text-white py-4 px-20 rounded-md">
+        <Button type="submit" className="text-white py-4 px-20 rounded-md ">
           {type === "create" ? "Create" : "Update"}
         </Button>
       </form>

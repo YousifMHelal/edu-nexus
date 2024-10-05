@@ -1,27 +1,23 @@
 import FormModal from "@/components/FormModal";
-import { ThePagination } from "@/components/Pagination";
+import ThePagination from "@/components/Pagination";
 import SearchBar from "@/components/SearchBar";
 import TableList from "@/components/TableList";
-import { TableCell, TableRow } from "@/components/ui/table";
-import { parentsData, role } from "@/lib/data";
-import Image from "next/image";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Button } from "@/components/ui/button";
+import { TableCell, TableRow } from "@/components/ui/table";
+import { role } from "@/lib/data";
+import prisma from "@/lib/prisma";
+import { ITEM_PER_PAGE } from "@/lib/utils";
+import { Parent, Prisma, Student } from "@prisma/client";
 import { MoreHorizontal } from "lucide-react";
+import Image from "next/image";
 
-type ParentType = {
-  id: number;
-  name: string;
-  email?: string;
-  students: string[];
-  phone: string;
-  address: string;
-};
+type ParentType = Parent & { students: Student[] };
 
 const columns = [
   {
@@ -49,8 +45,6 @@ const columns = [
   },
 ];
 
-const data = parentsData;
-
 const tableRow = (item: ParentType) => (
   <TableRow key={item.id}>
     <TableCell className="flex items-center gap-4 p-4">
@@ -60,7 +54,7 @@ const tableRow = (item: ParentType) => (
       </div>
     </TableCell>
     <TableCell className="hidden md:table-cell">
-      {item.students.join(", ")}
+      {item.students.map((student) => student.name).join(",  ")}
     </TableCell>
     <TableCell className="hidden md:table-cell">{item.phone}</TableCell>
     <TableCell className="hidden md:table-cell">{item.address}</TableCell>
@@ -83,7 +77,43 @@ const tableRow = (item: ParentType) => (
   </TableRow>
 );
 
-const ParentListPage = () => {
+export default async function ParentListPage({
+  searchParams,
+}: {
+  searchParams: { [key: string]: string | undefined };
+}) {
+  const { page, ...queryParams } = searchParams;
+  const currentPage = page ? parseInt(page) : 1;
+
+  // URL PARAMS CONDITION
+  const query: Prisma.ParentWhereInput = {};
+  if (queryParams) {
+    for (const [key, value] of Object.entries(queryParams)) {
+      if (value !== undefined) {
+        switch (key) {
+          case "search":
+            query.name = { contains: value, mode: "insensitive" };
+            break;
+          default:
+            break;
+        }
+      }
+    }
+  }
+
+  // Fetch data directly using Prisma on the server
+  const [data, count] = await prisma.$transaction([
+    prisma.parent.findMany({
+      where: query,
+      include: {
+        students: true,
+      },
+      take: ITEM_PER_PAGE,
+      skip: ITEM_PER_PAGE * (currentPage - 1),
+    }),
+    prisma.parent.count({ where: query }),
+  ]);
+
   return (
     <div className="p-4 rounded-md flex-1 m-4 mt-0">
       {/* TOP */}
@@ -105,9 +135,11 @@ const ParentListPage = () => {
       {/* LIST */}
       <TableList columns={columns} data={data} tableRow={tableRow} />
       {/* PAGINATION */}
-      <ThePagination />
+      {count > ITEM_PER_PAGE && (
+        <div className="flex justify-center mt-8">
+          <ThePagination page={currentPage} count={count} />
+        </div>
+      )}
     </div>
   );
-};
-
-export default ParentListPage;
+}

@@ -1,5 +1,5 @@
 import FormModal from "@/components/FormModal";
-import { ThePagination } from "@/components/Pagination";
+import ThePagination from "@/components/Pagination";
 import SearchBar from "@/components/SearchBar";
 import TableList from "@/components/TableList";
 import { Button } from "@/components/ui/button";
@@ -10,18 +10,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { TableCell, TableRow } from "@/components/ui/table";
-import { eventsData, role } from "@/lib/data";
+import { role } from "@/lib/data";
+import prisma from "@/lib/prisma";
+import { ITEM_PER_PAGE } from "@/lib/utils";
+import { Class, Event, Prisma } from "@prisma/client";
 import { MoreHorizontal } from "lucide-react";
 import Image from "next/image";
 
-type EventType = {
-  id: number;
-  title: string;
-  class: string;
-  date: string;
-  startTime: string;
-  endTime: string;
-};
+type EventType = Event & { class: Class };
 
 const columns = [
   {
@@ -53,15 +49,27 @@ const columns = [
   },
 ];
 
-const data = eventsData;
-
 const tableRow = (item: EventType) => (
   <TableRow key={item.id}>
     <TableCell className="flex items-center gap-4 p-4">{item.title}</TableCell>
-    <TableCell>{item.class}</TableCell>
-    <TableCell className="hidden md:table-cell">{item.date}</TableCell>
-    <TableCell className="hidden md:table-cell">{item.startTime}</TableCell>
-    <TableCell className="hidden md:table-cell">{item.endTime}</TableCell>
+    <TableCell>{item.class?.name || "-"}</TableCell>
+    <TableCell className="hidden md:table-cell">
+      {new Intl.DateTimeFormat("en-US").format(item.startTime)}
+    </TableCell>
+    <TableCell className="hidden md:table-cell">
+      {item.startTime.toLocaleTimeString("en-US", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+      })}
+    </TableCell>
+    <TableCell className="hidden md:table-cell">
+      {item.endTime.toLocaleTimeString("en-US", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+      })}
+    </TableCell>
     <TableCell>
       <div className="flex items-center gap-2">
         {role === "admin" && (
@@ -83,7 +91,59 @@ const tableRow = (item: EventType) => (
   </TableRow>
 );
 
-const EventListPage = () => {
+const EventListPage = async ({
+  searchParams,
+}: {
+  searchParams: { [key: string]: string | undefined };
+}) => {
+  const { page, ...queryParams } = searchParams;
+  const currentPage = page ? parseInt(page) : 1;
+
+  // URL PARAMS CONDITION
+  const query: Prisma.EventWhereInput = {};
+  if (queryParams) {
+    for (const [key, value] of Object.entries(queryParams)) {
+      if (value !== undefined) {
+        switch (key) {
+          case "search":
+            query.title = { contains: value, mode: "insensitive" };
+            break;
+          default:
+            break;
+        }
+      }
+    }
+  }
+
+  // ROLE CONDITIONS
+  // const roleConditions = {
+  //   teacher: { lessons: { some: { teacherId: currentUserId! } } },
+  //   student: { students: { some: { id: currentUserId! } } },
+  //   parent: { students: { some: { parentId: currentUserId! } } },
+  // };
+
+  // query.OR = [
+  //   { classId: null },
+  //   {
+  //     class: roleConditions[role as keyof typeof roleConditions] || {},
+  //   },
+  // ];
+
+  // Fetch data directly using Prisma on the server
+  const [data, count] = await prisma.$transaction([
+    prisma.event.findMany({
+      where: query,
+      include: {
+        class: true,
+      },
+      take: ITEM_PER_PAGE,
+      skip: ITEM_PER_PAGE * (currentPage - 1),
+    }),
+    prisma.event.count({ where: query }),
+  ]);
+
+  console.log(data);
+
   return (
     <div className="p-4 rounded-md flex-1 m-4 mt-0">
       {/* TOP */}
@@ -105,7 +165,11 @@ const EventListPage = () => {
       {/* LIST */}
       <TableList columns={columns} data={data} tableRow={tableRow} />
       {/* PAGINATION */}
-      <ThePagination />
+      {count > ITEM_PER_PAGE && (
+        <div className="flex justify-center mt-8">
+          <ThePagination page={currentPage} count={count} />
+        </div>
+      )}
     </div>
   );
 };

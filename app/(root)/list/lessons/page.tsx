@@ -1,5 +1,5 @@
 import FormModal from "@/components/FormModal";
-import { ThePagination } from "@/components/Pagination";
+import ThePagination from "@/components/Pagination";
 import SearchBar from "@/components/SearchBar";
 import TableList from "@/components/TableList";
 import { Button } from "@/components/ui/button";
@@ -10,17 +10,16 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { TableCell, TableRow } from "@/components/ui/table";
-import { lessonsData, role } from "@/lib/data";
+import { role } from "@/lib/data";
+import prisma from "@/lib/prisma";
+import { ITEM_PER_PAGE } from "@/lib/utils";
+import { Class, Lesson, Prisma, Subject, Teacher } from "@prisma/client";
 import { MoreHorizontal } from "lucide-react";
 import Image from "next/image";
 
-type LessonType = {
-  id: number;
-  subject: string;
-  class: string;
-  teacher: string;
+type LessonType = Lesson & { subject: Subject } & { class: Class } & {
+  teacher: Teacher;
 };
-
 const columns = [
   {
     header: "Subject Name",
@@ -41,15 +40,15 @@ const columns = [
   },
 ];
 
-const data = lessonsData;
-
 const tableRow = (item: LessonType) => (
   <TableRow key={item.id}>
     <TableCell className="flex items-center gap-4 p-4">
-      {item.subject}
+      {item.subject.name}
     </TableCell>
-    <TableCell>{item.class}</TableCell>
-    <TableCell className="hidden md:table-cell">{item.teacher}</TableCell>
+    <TableCell>{item.class.name}</TableCell>
+    <TableCell className="hidden md:table-cell">
+      {item.teacher.name + " " + item.teacher.surname}
+    </TableCell>
     <TableCell>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
@@ -67,7 +66,54 @@ const tableRow = (item: LessonType) => (
   </TableRow>
 );
 
-const LessonListPage = () => {
+const LessonListPage = async ({
+  searchParams,
+}: {
+  searchParams: { [key: string]: string | undefined };
+}) => {
+  const { page, ...queryParams } = searchParams;
+  const currentPage = page ? parseInt(page) : 1;
+
+  // URL PARAMS CONDITION
+  const query: Prisma.LessonWhereInput = {};
+  if (queryParams) {
+    for (const [key, value] of Object.entries(queryParams)) {
+      if (value !== undefined) {
+        switch (key) {
+          case "classId":
+            query.classId = parseInt(value);
+            break;
+          case "teacherId":
+            query.teacherId = value;
+            break;
+          case "search":
+            query.OR = [
+              { subject: { name: { contains: value, mode: "insensitive" } } },
+              { teacher: { name: { contains: value, mode: "insensitive" } } },
+            ];
+            break;
+          default:
+            break;
+        }
+      }
+    }
+  }
+
+  // Fetch data directly using Prisma on the server
+  const [data, count] = await prisma.$transaction([
+    prisma.lesson.findMany({
+      where: query,
+      include: {
+        subject: { select: { name: true } },
+        class: { select: { name: true } },
+        teacher: { select: { name: true, surname: true } },
+      },
+      take: ITEM_PER_PAGE,
+      skip: ITEM_PER_PAGE * (currentPage - 1),
+    }),
+    prisma.lesson.count({ where: query }),
+  ]);
+
   return (
     <div className="  p-4 rounded-md flex-1 m-4 mt-0">
       {/* TOP */}
@@ -89,7 +135,11 @@ const LessonListPage = () => {
       {/* LIST */}
       <TableList columns={columns} data={data} tableRow={tableRow} />
       {/* PAGINATION */}
-      <ThePagination />
+      {count > ITEM_PER_PAGE && (
+        <div className="flex justify-center mt-8">
+          <ThePagination page={currentPage} count={count} />
+        </div>
+      )}
     </div>
   );
 };

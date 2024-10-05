@@ -1,5 +1,5 @@
 import FormModal from "@/components/FormModal";
-import { ThePagination } from "@/components/Pagination";
+import ThePagination from "@/components/Pagination";
 import SearchBar from "@/components/SearchBar";
 import TableList from "@/components/TableList";
 import { Button } from "@/components/ui/button";
@@ -10,23 +10,15 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { TableCell, TableRow } from "@/components/ui/table";
-import { role, studentsData } from "@/lib/data";
+import { role } from "@/lib/data";
+import prisma from "@/lib/prisma";
+import { ITEM_PER_PAGE } from "@/lib/utils";
+import { Class, Prisma, Student } from "@prisma/client";
 import { MoreHorizontal } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
-
-type StudentType = {
-  id: number;
-  studentId: string;
-  name: string;
-  email?: string;
-  photo: string;
-  phone?: string;
-  grade: number;
-  class: string;
-  address: string;
-};
+type StudentType = Student & { class: Class };
 
 const columns = [
   {
@@ -59,13 +51,11 @@ const columns = [
   },
 ];
 
-const data = studentsData;
-
 const tableRow = (item: StudentType) => (
   <TableRow key={item.id}>
     <TableCell className="flex items-center gap-4 p-4">
       <Image
-        src={item.photo}
+        src={item.img || "/avatar.png"}
         alt=""
         width={40}
         height={40}
@@ -73,11 +63,11 @@ const tableRow = (item: StudentType) => (
       />
       <div className="flex flex-col">
         <h3 className="font-semibold">{item.name}</h3>
-        <p className="text-xs text-gray-500">{item.class}</p>
+        <p className="text-xs text-gray-500">{item.class.name}</p>
       </div>
     </TableCell>
-    <TableCell className="hidden md:table-cell">{item.studentId}</TableCell>
-    <TableCell className="hidden md:table-cell">{item.grade}</TableCell>
+    <TableCell className="hidden md:table-cell">{item.username}</TableCell>
+    <TableCell className="hidden md:table-cell">{item.class.name[0]}</TableCell>
     <TableCell className="hidden md:table-cell">{item.phone}</TableCell>
     <TableCell className="hidden md:table-cell">{item.address}</TableCell>
     <TableCell>
@@ -99,7 +89,53 @@ const tableRow = (item: StudentType) => (
   </TableRow>
 );
 
-const StudentListPage = () => {
+export default async function StudentListPage({
+  searchParams,
+}: {
+  searchParams: { [key: string]: string | undefined };
+}) {
+  const { page, ...queryParams } = searchParams;
+  const currentPage = page ? parseInt(page) : 1;
+
+  // URL PARAMS CONDITION
+  const query: Prisma.StudentWhereInput = {};
+  if (queryParams) {
+    for (const [key, value] of Object.entries(queryParams)) {
+      if (value !== undefined) {
+        switch (key) {
+          case "teacherId":
+            query.class = {
+              lessons: {
+                some: {
+                  teacherId: value,
+                },
+              },
+            };
+            break;
+          case "search":
+            query.name = { contains: value, mode: "insensitive" };
+            break;
+          default:
+            break;
+        }
+      }
+    }
+  }
+
+  // Fetch data directly using Prisma on the server
+  const [data, count] = await prisma.$transaction([
+    prisma.student.findMany({
+      where: query,
+      include: {
+        class: true,
+      },
+      take: ITEM_PER_PAGE,
+      skip: ITEM_PER_PAGE * (currentPage - 1),
+    }),
+    prisma.student.count({ where: query }),
+  ]);
+
+
   return (
     <div className="p-4 rounded-md flex-1 m-4 mt-0">
       {/* TOP */}
@@ -121,9 +157,11 @@ const StudentListPage = () => {
       {/* LIST */}
       <TableList columns={columns} data={data} tableRow={tableRow} />
       {/* PAGINATION */}
-      <ThePagination />
+      {count > ITEM_PER_PAGE && (
+        <div className="flex justify-center mt-8">
+          <ThePagination page={currentPage} count={count} />
+        </div>
+      )}
     </div>
   );
-};
-
-export default StudentListPage;
+}

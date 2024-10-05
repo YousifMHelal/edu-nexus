@@ -1,5 +1,5 @@
 import FormModal from "@/components/FormModal";
-import { ThePagination } from "@/components/Pagination";
+import ThePagination from "@/components/Pagination";
 import SearchBar from "@/components/SearchBar";
 import TableList from "@/components/TableList";
 import { Button } from "@/components/ui/button";
@@ -10,17 +10,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { TableCell, TableRow } from "@/components/ui/table";
-import { classesData, role } from "@/lib/data";
+import { role } from "@/lib/data";
+import prisma from "@/lib/prisma";
+import { ITEM_PER_PAGE } from "@/lib/utils";
+import { Class, Prisma, Teacher } from "@prisma/client";
 import { MoreHorizontal } from "lucide-react";
 import Image from "next/image";
 
-type ClassType = {
-  id: number;
-  name: string;
-  capacity: number;
-  grade: number;
-  supervisor: string;
-};
+type ClassType = Class & { supervisor: Teacher };
 
 const columns = [
   {
@@ -48,14 +45,14 @@ const columns = [
   },
 ];
 
-const data = classesData;
-
 const tableRow = (item: ClassType) => (
   <TableRow key={item.id}>
     <TableCell className="flex items-center gap-4 p-4">{item.name}</TableCell>
     <TableCell className="hidden md:table-cell">{item.capacity}</TableCell>
-    <TableCell className="hidden md:table-cell">{item.grade}</TableCell>
-    <TableCell className="hidden md:table-cell">{item.supervisor}</TableCell>
+    <TableCell className="hidden md:table-cell">{item.name[0]}</TableCell>
+    <TableCell className="hidden md:table-cell">
+      {item.supervisor.name}
+    </TableCell>
     <TableCell>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
@@ -73,7 +70,46 @@ const tableRow = (item: ClassType) => (
   </TableRow>
 );
 
-const ClassListPage = () => {
+const ClassListPage = async ({
+  searchParams,
+}: {
+  searchParams: { [key: string]: string | undefined };
+}) => {
+  const { page, ...queryParams } = searchParams;
+  const currentPage = page ? parseInt(page) : 1;
+
+  // URL PARAMS CONDITION
+  const query: Prisma.ClassWhereInput = {};
+  if (queryParams) {
+    for (const [key, value] of Object.entries(queryParams)) {
+      if (value !== undefined) {
+        switch (key) {
+          case "supervisorId":
+            query.supervisorId = value;
+            break;
+          case "search":
+            query.name = { contains: value, mode: "insensitive" };
+            break;
+          default:
+            break;
+        }
+      }
+    }
+  }
+
+  // Fetch data directly using Prisma on the server
+  const [data, count] = await prisma.$transaction([
+    prisma.class.findMany({
+      where: query,
+      include: {
+        supervisor: true,
+      },
+      take: ITEM_PER_PAGE,
+      skip: ITEM_PER_PAGE * (currentPage - 1),
+    }),
+    prisma.class.count({ where: query }),
+  ]);
+
   return (
     <div className="p-4 rounded-md flex-1 m-4 mt-0">
       {/* TOP */}
@@ -95,7 +131,11 @@ const ClassListPage = () => {
       {/* LIST */}
       <TableList columns={columns} data={data} tableRow={tableRow} />
       {/* PAGINATION */}
-      <ThePagination />
+      {count > ITEM_PER_PAGE && (
+        <div className="flex justify-center mt-8">
+          <ThePagination page={currentPage} count={count} />
+        </div>
+      )}
     </div>
   );
 };

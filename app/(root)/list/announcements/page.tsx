@@ -1,5 +1,5 @@
 import FormModal from "@/components/FormModal";
-import { ThePagination } from "@/components/Pagination";
+import ThePagination from "@/components/Pagination";
 import SearchBar from "@/components/SearchBar";
 import TableList from "@/components/TableList";
 import { Button } from "@/components/ui/button";
@@ -10,16 +10,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { TableCell, TableRow } from "@/components/ui/table";
-import { announcementsData, role } from "@/lib/data";
+import { role } from "@/lib/data";
+import prisma from "@/lib/prisma";
+import { ITEM_PER_PAGE } from "@/lib/utils";
+import { Announcement, Class, Prisma } from "@prisma/client";
 import { MoreHorizontal } from "lucide-react";
 import Image from "next/image";
 
-type AnnouncementType = {
-  id: number;
-  title: string;
-  class: string;
-  date: string;
-};
+type AnnouncementType = Announcement & { class: Class };
 
 const columns = [
   {
@@ -41,13 +39,13 @@ const columns = [
   },
 ];
 
-const data = announcementsData;
-
 const tableRow = (item: AnnouncementType) => (
   <TableRow key={item.id}>
     <TableCell className="flex items-center gap-4 p-4">{item.title}</TableCell>
-    <TableCell>{item.class}</TableCell>
-    <TableCell className="hidden md:table-cell">{item.date}</TableCell>
+    <TableCell>{item.class?.name || "-"}</TableCell>
+    <TableCell className="hidden md:table-cell">
+      {new Intl.DateTimeFormat("en-US").format(item.date)}
+    </TableCell>
     <TableCell>
       <div className="flex items-center gap-2">
         {role === "admin" && (
@@ -69,7 +67,43 @@ const tableRow = (item: AnnouncementType) => (
   </TableRow>
 );
 
-const AnnouncementListPage = () => {
+const AnnouncementListPage = async ({
+  searchParams,
+}: {
+  searchParams: { [key: string]: string | undefined };
+}) => {
+  const { page, ...queryParams } = searchParams;
+  const currentPage = page ? parseInt(page) : 1;
+
+  // URL PARAMS CONDITION
+  const query: Prisma.AnnouncementWhereInput = {};
+  if (queryParams) {
+    for (const [key, value] of Object.entries(queryParams)) {
+      if (value !== undefined) {
+        switch (key) {
+          case "search":
+            query.title = { contains: value, mode: "insensitive" };
+            break;
+          default:
+            break;
+        }
+      }
+    }
+  }
+
+  // Fetch data directly using Prisma on the server
+  const [data, count] = await prisma.$transaction([
+    prisma.announcement.findMany({
+      where: query,
+      include: {
+        class: true,
+      },
+      take: ITEM_PER_PAGE,
+      skip: ITEM_PER_PAGE * (currentPage - 1),
+    }),
+    prisma.announcement.count({ where: query }),
+  ]);
+
   return (
     <div className="p-4 rounded-md flex-1 m-4 mt-0">
       {/* TOP */}
@@ -93,7 +127,11 @@ const AnnouncementListPage = () => {
       {/* LIST */}
       <TableList columns={columns} data={data} tableRow={tableRow} />
       {/* PAGINATION */}
-      <ThePagination />
+      {count > ITEM_PER_PAGE && (
+        <div className="flex justify-center mt-8">
+          <ThePagination page={currentPage} count={count} />
+        </div>
+      )}
     </div>
   );
 };

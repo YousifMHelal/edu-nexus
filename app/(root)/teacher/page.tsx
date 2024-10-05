@@ -16,7 +16,7 @@ const TeacherPage = () => {
         <Announcements />
       </div>
     </div>
-  );  
+  );
 };
 
 export default TeacherPage;

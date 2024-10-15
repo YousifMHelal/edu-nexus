@@ -8,27 +8,36 @@
 
 - Node.js
 - Next.js
+- TypeScript
 - Tailwind CSS
 - Shadcn
 - Zod
 - React Query
 - React Hook Form
+- Prisma
+- PostgreSQL
+- Clerk
+- Docker
 
 ## <a name="features">🔋 Features</a>
 
 👉 **Admin Account Management:**
+
 - **Add Accounts:** Admins can add new teacher, student, or parent accounts with ease.
 - **Manage Users:** Edit or delete accounts to ensure smooth operations.
 
 👉 **Teacher Features:**
+
 - **Class Management:** Teachers can manage class schedules, attendance, and grades for students.
 - **Student Performance:** Easily update and view student exam results.
 
 👉 **Student Portal:**
+
 - **View Schedules:** Students can access their class schedules.
 - **Check Exam Results:** Students can see their grades for exams and assignments.
 
 👉 **Parent Portal:**
+
 - **View Children’s Schedules:** Parents can view their children's daily schedules.
 - **Check Exam Results:** Parents can monitor their children's academic performance by accessing exam results.
 
@@ -55,11 +64,24 @@ Make sure you have the following installed on your machine:
     cd edu-nexus
     ```
 3.  Install dependencies:
+
     ```bash
     npm install
     ```
 
-4.  Run the development server:
+4.  Create a new file named `.env` in the root of your project and add the following content:
+
+    ```bash
+    # PostgreSQL Connection String
+    DATABASE_URL=your_postgres_uri
+
+    # CLERK Public keys
+    NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=your_publish_key
+    CLERK_SECRET_KEY=your_secret_key
+    NEXT_PUBLIC_CLERK_SIGN_IN_URL=your_sign_in_url
+    ```
+
+5.  Run the development server:
     ```bash
     npm run dev
     ```
